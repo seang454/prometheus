@@ -1,0 +1,3 @@
+- kubectl get pods --namespace default -l "release= prometheus-stack-release"
+- helm show values prometheus-community/kube-prometheus-stack > values.yaml
+- helm upgrade prometheus-stack-release prometheus-community/kube-prometheus-stack -f values.yaml -n default
