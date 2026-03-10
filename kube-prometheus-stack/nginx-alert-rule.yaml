@@ -4,17 +4,16 @@ metadata:
   name: nginx-count-pods-alert-rule
   namespace: default
   labels:
-    release: prometheus-stack-release # make sure this matches your release name
+    release: prometheus-stack-release
 spec:
   groups:
     - name: "nginx.rules"
       rules:
         - alert: NginxCountLow
-          expr: sum(kube_pod_status_ready{condition="true",namespace="default", pod=~"nginx-deployment.*"}) < 3
-          for: 5s
+          expr: sum(kube_pod_status_ready{condition="true",namespace="default", pod=~"nginx-deployment.*"}) < 4
+          for: 1m
           labels:
             severity: critical
-            alertname: NginxCountLow2
           annotations:
             summary: "Nginx pods count is less than 4"
             description: "The number of nginx pods is currently {{ $value }}. Please check the deployment and ensure there are at least 4 replicas running."

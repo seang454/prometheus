@@ -17,3 +17,7 @@ kubectl get pods -n default -l "release=prometheus-stack-release"
 helm upgrade prometheus-stack-release prometheus-community/kube-prometheus-stack \
   -f values.yaml \
   -n default
+
+# if you don forget password we can reset it
+kubectl exec -it prometheus-stack-release-grafana-68cc4457b9-njwcp \
+  -- grafana-cli admin reset-admin-password admin
