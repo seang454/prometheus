@@ -1,0 +1,62 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pvc-usage-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus        # ← must match your Prometheus Operator label selector
+spec:
+  groups:
+    - name: pvc.rules          # required, minLength: 1
+      interval: 1m             # pattern: ^(0|([0-9]+y)?([0-9]+w)?...)$
+      limit: 10                # max alerts this group can produce (Prometheus >= 2.31)
+      rules:
+
+        # ── WARNING: 80% usage ──────────────────────────────────────────
+        - alert: PVCHighUsage                  # alert name (valid label value)
+          expr: |
+            (
+              kubelet_volume_stats_used_bytes
+              /
+              kubelet_volume_stats_capacity_bytes
+            ) * 100 > 80
+          for: 5m                              # pattern: ^(0|([0-9]+)m...)$
+          labels:                              # labels to add/overwrite
+            severity: warning
+            team: infra
+          annotations:                        # only valid for alerting rules
+            summary: "PVC {{ $labels.persistentvolumeclaim }} is above 80%"
+            description: >
+              PVC {{ $labels.persistentvolumeclaim }}
+              in namespace {{ $labels.namespace }}
+              is {{ $value | printf "%.1f" }}% full.
+            runbook_url: "https://wiki.example.com/pvc-full-runbook"
+
+        # ── CRITICAL: 90% usage ─────────────────────────────────────────
+        - alert: PVCCriticalUsage
+          expr: |
+            (
+              kubelet_volume_stats_used_bytes
+              /
+              kubelet_volume_stats_capacity_bytes
+            ) * 100 > 90
+          for: 5m
+          keep_firing_for: 10m               # keeps firing 10m after condition clears
+          labels:
+            severity: critical
+            team: infra
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} is above 90%"
+            description: >
+              PVC {{ $labels.persistentvolumeclaim }}
+              in namespace {{ $labels.namespace }}
+              is {{ $value | printf "%.1f" }}% full. Immediate action required!
+
+        # ── RECORDING RULE: pre-compute ratio as a reusable metric ──────
+        - record: pvc:usage:ratio             # record instead of alert
+          expr: |
+            kubelet_volume_stats_used_bytes
+            /
+            kubelet_volume_stats_capacity_bytes
+          labels:
+            source: kubelet
